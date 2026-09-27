@@ -11,10 +11,15 @@ agent-skills/
 ├── .gitignore
 ├── AGENTS.md
 └── skills/
-    └── add-skill/
+    ├── add-skill/
+    │   ├── SKILL.md
+    │   └── references/
+    │       └── validation.md
+    └── setup-comfyui-qwen-image-gguf/
         ├── SKILL.md
         └── references/
-            └── validation.md
+            ├── quant-selection.md
+            └── workflow.md
 ```
 
 ## Agent Skillとは
@@ -30,6 +35,7 @@ Agent Skillは、特定の作業で使う指示と必要な補助ファイルを
 | Skill | 用途 |
 | --- | --- |
 | [add-skill](skills/add-skill/SKILL.md) | このリポジトリへのSkill追加、重複確認、README更新、構造検証 |
+| [setup-comfyui-qwen-image-gguf](skills/setup-comfyui-qwen-image-gguf/SKILL.md) | Windows + NVIDIA GPUにComfyUIを構築し、Qwen-Image-2.1-Uncensored（GGUF）をVRAMに合った量子化で使えるようにする |
 
 ## インストール
 
