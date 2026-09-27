@@ -11,8 +11,10 @@ agent-skills/
 ├── .gitignore
 ├── AGENTS.md
 └── skills/
-    └── <skill-name>/
-        └── SKILL.md
+    └── add-skill/
+        ├── SKILL.md
+        └── references/
+            └── validation.md
 ```
 
 ## Agent Skillとは
@@ -25,7 +27,9 @@ Agent Skillは、特定の作業で使う指示と必要な補助ファイルを
 
 ## Skill一覧
 
-現在、登録済みのSkillはありません。
+| Skill | 用途 |
+| --- | --- |
+| [add-skill](skills/add-skill/SKILL.md) | このリポジトリへのSkill追加、重複確認、README更新、構造検証 |
 
 ## 開発方針
 
