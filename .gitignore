@@ -1,0 +1,12 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local installations; maintained skill sources live in skills/.
+/.agents/skills/
+/skills-lock.json
