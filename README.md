@@ -15,6 +15,8 @@ agent-skills/
     │   ├── SKILL.md
     │   └── references/
     │       └── validation.md
+    ├── play-torneko-chotto-dungeon/
+    │   └── SKILL.md
     └── setup-comfyui-qwen-image-gguf/
         ├── SKILL.md
         └── references/
@@ -36,6 +38,7 @@ Agent Skillは、特定の作業で使う指示と必要な補助ファイルを
 | --- | --- |
 | [add-skill](skills/add-skill/SKILL.md) | このリポジトリへのSkill追加、重複確認、README更新、構造検証 |
 | [setup-comfyui-qwen-image-gguf](skills/setup-comfyui-qwen-image-gguf/SKILL.md) | Windows + NVIDIA GPUにComfyUIを構築し、Qwen-Image-2.1-Uncensored（GGUF）をVRAMに合った量子化で使えるようにする |
+| [play-torneko-chotto-dungeon](skills/play-torneko-chotto-dungeon/SKILL.md) | Steam版トルネコの大冒険リマスターをコンピュータ操作でプレイし、ちょっと不思議のダンジョンの宝石箱を持ち帰る。プレイごとに攻略情報を更新する |
 
 ## インストール
 
