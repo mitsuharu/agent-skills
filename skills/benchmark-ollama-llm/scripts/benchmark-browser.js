@@ -7,7 +7,11 @@
 // Usage: Ollamaのページ（http://localhost:11434）を開き、このファイルの中身を
 // ページのJavaScriptとして実行してから、次を順に呼ぶ。
 //
-//   ollamaBenchmark.start({ model: "gemma4:12b", runs: 10, think: "true" })
+// 既定値は3つのスクリプトで共通の defaults.json にある。ページからはファイルを
+// 読めないので、呼び出し側が defaults.json（と必要なら上書き用JSONや個別の値）を
+// 重ねたオブジェクトを start に渡す。
+//
+//   ollamaBenchmark.start({ ...defaults, ...config, model: "qwen3:30b" })
 //   ollamaBenchmark.status()   // 実行中は status: "running"。完了まで繰り返し確認する
 //   ollamaBenchmark.summary()  // サマリー（benchmark.sh と同じ書式）
 //   ollamaBenchmark.csv()      // CSV文字列（benchmark.sh と同じ列）
@@ -22,21 +26,11 @@
 (function (root) {
     "use strict";
 
-    var DEFAULTS = {
-        model: "gemma4:12b",
-        prompt: "Swiftで100万件の要素を効率よくソートする方法を説明してください。\n" +
-            "アルゴリズムの計算量、メモリ使用量、Swiftでの実装例も含めてください。",
-        runs: 10,
-        // true / false / low / medium / high / max / default
-        think: "true",
-        numPredict: 2048,
-        temperature: 0,
-        // 指定すると毎回プロンプト先頭を変更して
-        // prompt cache が効きにくい状態で入力性能を測る
-        bustPromptCache: false,
-        // Ollama APIの接続先。省略時は開いているページのorigin
-        host: null
-    };
+    // defaults.json と同じキー。host が空なら開いているページのoriginに送る
+    var SETTING_KEYS = [
+        "model", "prompt", "runs", "think", "numPredict", "temperature", "bustPromptCache", "host"
+    ];
+    var REQUIRED_KEYS = ["model", "prompt", "runs", "think", "numPredict", "temperature"];
 
     var COLUMNS = [
         "Run", "Model", "ThinkMode",
@@ -272,14 +266,21 @@
         }
     }
 
-    function start(options) {
+    function start(settings) {
         if (state.status === "running" || state.status === "pulling") {
             throw new Error("a benchmark or pull is already running; check ollamaBenchmark.status()");
         }
+        settings = settings || {};
+        var unknown = Object.keys(settings).filter(function (k) { return SETTING_KEYS.indexOf(k) < 0; });
+        if (unknown.length) throw new Error("unknown settings: " + unknown.join(", "));
+        var missing = REQUIRED_KEYS.filter(function (k) { return settings[k] == null; });
+        if (missing.length) {
+            throw new Error("missing settings: " + missing.join(", ") +
+                ". Pass the contents of defaults.json merged with your overrides.");
+        }
         var opts = {};
-        Object.keys(DEFAULTS).forEach(function (k) {
-            opts[k] = options && options[k] !== undefined ? options[k] : DEFAULTS[k];
-        });
+        SETTING_KEYS.forEach(function (k) { opts[k] = settings[k]; });
+        opts.bustPromptCache = opts.bustPromptCache === true || opts.bustPromptCache === "true";
         opts.runs = Number(opts.runs);
         opts.numPredict = Number(opts.numPredict);
         opts.temperature = Number(opts.temperature);

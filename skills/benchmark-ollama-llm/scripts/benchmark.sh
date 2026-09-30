@@ -11,36 +11,34 @@ set -euo pipefail
 
 export LC_NUMERIC=C
 
-MODEL="gemma4:12b"
-PROMPT="Swiftで100万件の要素を効率よくソートする方法を説明してください。
-アルゴリズムの計算量、メモリ使用量、Swiftでの実装例も含めてください。"
-RUNS=10
-# true / false / low / medium / high / max / default
-THINK="true"
-NUM_PREDICT=2048
-TEMPERATURE=0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# 既定値は3つのスクリプトで共通の defaults.json に置く
+DEFAULTS_JSON="$SCRIPT_DIR/defaults.json"
+CONFIG_JSON=""
 # 省略時は開始時刻入りの名前にして上書きを防ぐ
 OUTPUT_CSV="ollama-benchmark-$(date +%Y%m%d-%H%M%S).csv"
-# 指定すると毎回プロンプト先頭を変更して
-# prompt cache が効きにくい状態で入力性能を測る
-BUST_PROMPT_CACHE=false
-OLLAMA_HOST_URL="http://localhost:11434"
 
 usage() {
     cat <<'EOF'
 Usage: benchmark.sh [options]
 
-  -m, --model NAME          Model name (default: gemma4:12b)
+Defaults are read from defaults.json next to this script.
+Priority: command-line options > --config file > defaults.json
+
+  -c, --config PATH         JSON file overriding defaults.json
+                            (keys: model, prompt, runs, think, numPredict,
+                             temperature, bustPromptCache, host)
+  -m, --model NAME          Model name
   -p, --prompt TEXT         Prompt text
       --prompt-file PATH    Read the prompt from a file
-  -n, --runs N              Number of measured runs (default: 10)
-  -t, --think VALUE         true|false|low|medium|high|max|default (default: true)
-      --num-predict N       Max output tokens (default: 2048)
-      --temperature X       Sampling temperature (default: 0)
+  -n, --runs N              Number of measured runs
+  -t, --think VALUE         true|false|low|medium|high|max|default
+      --num-predict N       Max output tokens
+      --temperature X       Sampling temperature
   -o, --output-csv PATH     CSV output path
                             (default: ollama-benchmark-YYYYMMDD-HHMMSS.csv)
       --bust-prompt-cache   Prefix a random id to the prompt on every run
-      --host URL            Ollama URL (default: http://localhost:11434)
+      --host URL            Ollama URL
   -h, --help                Show this help
 
 Exit codes: 0 ok, 1 error, 2 Ollama not reachable, 3 model not installed
@@ -56,35 +54,83 @@ need_value() {
     [ "$#" -ge 2 ] || die "$1 requires a value"
 }
 
+# コマンドライン引数は OPT_* に入れ、設定ファイルの値より優先する
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        -m|--model) need_value "$@"; MODEL="$2"; shift 2 ;;
-        -p|--prompt) need_value "$@"; PROMPT="$2"; shift 2 ;;
+        -c|--config) need_value "$@"; CONFIG_JSON="$2"; shift 2 ;;
+        -m|--model) need_value "$@"; OPT_MODEL="$2"; shift 2 ;;
+        -p|--prompt) need_value "$@"; OPT_PROMPT="$2"; shift 2 ;;
         --prompt-file)
             need_value "$@"
             [ -f "$2" ] || die "prompt file not found: $2"
-            PROMPT="$(cat "$2")"
+            OPT_PROMPT="$(cat "$2")"
             shift 2 ;;
-        -n|--runs) need_value "$@"; RUNS="$2"; shift 2 ;;
-        -t|--think) need_value "$@"; THINK="$2"; shift 2 ;;
-        --num-predict) need_value "$@"; NUM_PREDICT="$2"; shift 2 ;;
-        --temperature) need_value "$@"; TEMPERATURE="$2"; shift 2 ;;
+        -n|--runs) need_value "$@"; OPT_RUNS="$2"; shift 2 ;;
+        -t|--think) need_value "$@"; OPT_THINK="$2"; shift 2 ;;
+        --num-predict) need_value "$@"; OPT_NUM_PREDICT="$2"; shift 2 ;;
+        --temperature) need_value "$@"; OPT_TEMPERATURE="$2"; shift 2 ;;
         -o|--output-csv) need_value "$@"; OUTPUT_CSV="$2"; shift 2 ;;
-        --bust-prompt-cache) BUST_PROMPT_CACHE=true; shift ;;
-        --host) need_value "$@"; OLLAMA_HOST_URL="$2"; shift 2 ;;
+        --bust-prompt-cache) OPT_BUST_PROMPT_CACHE=true; shift ;;
+        --host) need_value "$@"; OPT_HOST="$2"; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) usage >&2; die "unknown option: $1" ;;
     esac
 done
 
+for cmd in curl jq perl; do
+    command -v "$cmd" >/dev/null 2>&1 || die "$cmd is required (macOS: brew install $cmd)"
+done
+
+# ------------------------------------------------------------
+# Settings: defaults.json < --config < コマンドライン引数
+# ------------------------------------------------------------
+
+SETTING_KEYS='["model","prompt","runs","think","numPredict","temperature","bustPromptCache","host"]'
+
+[ -f "$DEFAULTS_JSON" ] || die "defaults.json not found: $DEFAULTS_JSON"
+[ -z "$CONFIG_JSON" ] || [ -f "$CONFIG_JSON" ] || die "config file not found: $CONFIG_JSON"
+
+check_settings_file() {
+    jq -e 'type == "object"' "$1" >/dev/null 2>&1 || die "invalid JSON object: $1"
+    local unknown
+    unknown="$(jq -r --argjson keys "$SETTING_KEYS" 'keys - $keys | join(", ")' "$1")"
+    [ -z "$unknown" ] || die "unknown keys in $1: $unknown"
+}
+
+check_settings_file "$DEFAULTS_JSON"
+if [ -n "$CONFIG_JSON" ]; then
+    check_settings_file "$CONFIG_JSON"
+    SETTINGS="$(jq -s '.[0] * .[1]' "$DEFAULTS_JSON" "$CONFIG_JSON")"
+else
+    SETTINGS="$(jq '.' "$DEFAULTS_JSON")"
+fi
+
+# setting <key>: 値を文字列で返す（真偽値は true/false、null は空）
+setting() {
+    echo "$SETTINGS" | jq -r --arg k "$1" '.[$k] | if . == null then "" else tostring end'
+}
+
+MODEL="${OPT_MODEL-$(setting model)}"
+PROMPT="${OPT_PROMPT-$(setting prompt)}"
+RUNS="${OPT_RUNS-$(setting runs)}"
+# true / false / low / medium / high / max / default
+THINK="${OPT_THINK-$(setting think)}"
+NUM_PREDICT="${OPT_NUM_PREDICT-$(setting numPredict)}"
+TEMPERATURE="${OPT_TEMPERATURE-$(setting temperature)}"
+# true のとき毎回プロンプト先頭を変更して
+# prompt cache が効きにくい状態で入力性能を測る
+BUST_PROMPT_CACHE="${OPT_BUST_PROMPT_CACHE-$(setting bustPromptCache)}"
+OLLAMA_HOST_URL="${OPT_HOST-$(setting host)}"
+
+[ -n "$MODEL" ] || die "model is not set"
+[ -n "$THINK" ] || THINK="default"
+[ -n "$OLLAMA_HOST_URL" ] || OLLAMA_HOST_URL="http://localhost:11434"
+case "$BUST_PROMPT_CACHE" in true|false) ;; *) die "bustPromptCache must be true or false" ;; esac
+
 case "$RUNS" in ''|*[!0-9]*) die "--runs must be a positive integer" ;; esac
 [ "$RUNS" -ge 1 ] || die "--runs must be a positive integer"
 case "$NUM_PREDICT" in ''|*[!0-9-]*) die "--num-predict must be an integer" ;; esac
 echo "$TEMPERATURE" | grep -Eq '^[0-9]*\.?[0-9]+$' || die "--temperature must be a number"
-
-for cmd in curl jq perl; do
-    command -v "$cmd" >/dev/null 2>&1 || die "$cmd is required (macOS: brew install $cmd)"
-done
 
 OLLAMA_HOST_URL="${OLLAMA_HOST_URL%/}"
 BASE_URL="$OLLAMA_HOST_URL/api/generate"

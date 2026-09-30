@@ -13,6 +13,7 @@ import vm from "node:vm";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const scriptPath = join(here, "../../skills/benchmark-ollama-llm/scripts/benchmark-browser.js");
+const defaults = JSON.parse(readFileSync(join(here, "../../skills/benchmark-ollama-llm/scripts/defaults.json"), "utf8"));
 const port = Number(process.env.MOCK_PORT || 11439);
 const host = `http://127.0.0.1:${port}`;
 const tmp = mkdtempSync(join(tmpdir(), "bench-browser-"));
@@ -28,7 +29,7 @@ const requests = () =>
 
 async function run(options) {
     writeFileSync(log, "");
-    bench.start({ host, ...options });
+    bench.start({ ...defaults, host, ...options });
     await bench.wait();
     return bench.status();
 }
@@ -118,6 +119,21 @@ test("error codes", async () => {
 
     s = await run({ model: "mock-model", runs: 0 });
     assert.deepEqual([s.status, s.code], ["error", 1]);
+});
+
+test("defaults.json values are sent", async () => {
+    const s = await run({ runs: 1 });
+    assert.equal(s.status, "done");
+    const last = requests().at(-1);
+    assert.deepEqual(
+        [last.model, String(last.think), last.options.num_predict, last.options.temperature, last.prompt],
+        [defaults.model, String(defaults.think), defaults.numPredict, defaults.temperature, defaults.prompt],
+    );
+});
+
+test("settings are validated", () => {
+    assert.throws(() => bench.start({ model: "mock-model" }), /missing settings: prompt, runs/);
+    assert.throws(() => bench.start({ ...defaults, modle: "typo" }), /unknown settings: modle/);
 });
 
 test("pull streams until success", async () => {

@@ -72,6 +72,29 @@ check "no thinking -> ThinkingSec 0" test "$(csv_value "$TMP/c.csv" 1 ThinkingSe
 bash "$SCRIPT" --host "$HOST" --model mock-model --runs 1 --think false --output-csv "$TMP/d.csv" >/dev/null
 check "think=false is sent as boolean" test "$(tail -1 "$LOG" | jq -c '.think')" = false
 
+# --- defaults.json / --config ------------------------------------------
+DEFAULTS="$TEST_DIR/../../skills/benchmark-ollama-llm/scripts/defaults.json"
+: >"$LOG"
+bash "$SCRIPT" --host "$HOST" --runs 1 --output-csv "$TMP/f.csv" >/dev/null
+check "defaults.json values are sent" test "$(tail -1 "$LOG" | jq -c '[.model, .think, .options.num_predict, .options.temperature, .prompt]')" = \
+    "$(jq -c '[.model, (.think | test("^true$") ), .numPredict, .temperature, .prompt]' "$DEFAULTS")"
+
+echo '{"model": "mock-model", "numPredict": 64, "think": "false", "runs": 1}' >"$TMP/config.json"
+: >"$LOG"
+bash "$SCRIPT" --host "$HOST" --config "$TMP/config.json" --output-csv "$TMP/g.csv" >/dev/null
+check "--config overrides defaults.json" test "$(tail -1 "$LOG" | jq -c '[.model, .think, .options.num_predict]')" = '["mock-model",false,64]'
+check "--config runs is used" test "$(wc -l <"$LOG" | tr -d ' ')" -eq 2
+bash "$SCRIPT" --host "$HOST" --config "$TMP/config.json" --num-predict 32 --output-csv "$TMP/h.csv" >/dev/null
+check "options override --config" test "$(tail -1 "$LOG" | jq '.options.num_predict')" = 32
+
+echo '{"modle": "typo"}' >"$TMP/bad.json"
+set +e
+bash "$SCRIPT" --host "$HOST" --config "$TMP/bad.json" >/dev/null 2>&1
+check "unknown config key exits 1" test $? -eq 1
+bash "$SCRIPT" --host "$HOST" --config "$TMP/missing.json" >/dev/null 2>&1
+check "missing config file exits 1" test $? -eq 1
+set -e
+
 # --- default csv name ---------------------------------------------------
 mkdir "$TMP/default"
 (cd "$TMP/default" && bash "$SCRIPT" --host "$HOST" --model mock-model --runs 1 >/dev/null)
