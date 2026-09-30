@@ -32,6 +32,8 @@
 - 外部のactionはタグではなくフルのコミットSHAで固定し、行末にバージョンをコメントで書く。例: `uses: actions/checkout@<40桁のSHA> # v7.0.1`
 - SHAはタグが指すコミットを公式リポジトリで確認して使う（`git ls-remote --tags https://github.com/<owner>/<repo>` など）。更新時もSHAとコメントを一緒に変える。
 - Node.jsのバージョンはルートの `.node-version` で指定する（現在は24）。非推奨のNode.jsで動くactionは、そのランタイムに対応したバージョンへ上げる。
+- PRを検証するCIは `pull_request` の `types: [opened, synchronize, reopened]` で起動し、`push` トリガーは付けない。対象Skillのファイルだけで動くよう `paths` を指定する。
+- actionの更新はDependabot（`.github/dependabot.yml` の `github-actions`）で月1回確認する。新しい依存のエコシステムを追加したら同じファイルに設定を足す。
 
 ## Validation
 
