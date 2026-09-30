@@ -2,12 +2,7 @@ name: benchmark-ollama-llm
 
 on:
   pull_request:
-    paths:
-      - "skills/benchmark-ollama-llm/**"
-      - "tests/benchmark-ollama-llm/**"
-      - ".github/workflows/benchmark-ollama-llm.yml"
-  push:
-    branches: [main]
+    types: [opened, synchronize, reopened]
     paths:
       - "skills/benchmark-ollama-llm/**"
       - "tests/benchmark-ollama-llm/**"
