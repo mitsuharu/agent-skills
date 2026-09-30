@@ -27,6 +27,22 @@
 - `SKILL.md` を簡潔に保ち、補助資料・スクリプト・素材は実際に必要な場合だけ追加する。
 - Skillを追加・変更したらREADMEの一覧と使い方を同期する。不要な設定や生成物を追加しない。
 
+## GitHub Actions
+
+- 外部のactionはタグではなくフルのコミットSHAで固定し、行末にバージョンをコメントで書く。例: `uses: actions/checkout@<40桁のSHA> # v7.0.1`
+- SHAはタグが指すコミットを公式リポジトリで確認して使う（`git ls-remote --tags https://github.com/<owner>/<repo>` など）。更新時もSHAとコメントを一緒に変える。
+- Node.jsのバージョンはルートの `.node-version` で指定する（現在は24）。非推奨のNode.jsで動くactionは、そのランタイムに対応したバージョンへ上げる。
+- PRを検証するCIは `pull_request` の `types: [opened, synchronize, reopened]` で起動し、`push` トリガーは付けない。対象Skillのファイルだけで動くよう `paths` を指定する。
+- 同じPRで重複して走らないよう、workflowには次の `concurrency` を付ける。
+
+  ```yaml
+  concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+  ```
+
+- actionの更新はDependabot（`.github/dependabot.yml` の `github-actions`）で月1回確認する。新しい依存のエコシステムを追加したら同じファイルに設定を足す。
+
 ## Validation
 
 - PR作成前に `skills/add-skill/references/validation.md` に従い、frontmatter・リンク・Skillの動作手順を確認する。

@@ -1,0 +1,56 @@
+name: benchmark-ollama-llm
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "skills/benchmark-ollama-llm/**"
+      - "tests/benchmark-ollama-llm/**"
+      - ".github/workflows/benchmark-ollama-llm.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: shellcheck
+        run: shellcheck skills/benchmark-ollama-llm/scripts/*.sh tests/benchmark-ollama-llm/*.sh
+
+  macos:
+    # macOS標準の bash 3.2 / curl / perl / jq でモックAPIに対して実行する
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test benchmark.sh
+        run: /bin/bash tests/benchmark-ollama-llm/test_benchmark.sh
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) {
+            Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          }
+          $results = Get-ChildItem -Recurse -Include *.ps1 skills/benchmark-ollama-llm, tests/benchmark-ollama-llm |
+            ForEach-Object {
+              Invoke-ScriptAnalyzer -Path $_.FullName -Settings tests/benchmark-ollama-llm/PSScriptAnalyzerSettings.psd1
+            }
+          $results | Format-Table -AutoSize
+          if ($results) { exit 1 }
+      - name: Test benchmark.ps1 (PowerShell 7)
+        shell: pwsh
+        run: ./tests/benchmark-ollama-llm/test-benchmark.ps1 -Shell pwsh
+      - name: Test benchmark.ps1 (Windows PowerShell 5.1)
+        shell: pwsh
+        run: ./tests/benchmark-ollama-llm/test-benchmark.ps1 -Shell powershell
