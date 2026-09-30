@@ -12,7 +12,9 @@ agent-skills/
 ├── .gitignore
 ├── .node-version            # Node.jsのバージョン（24）
 ├── AGENTS.md
-├── .github/workflows/        # Skillごとのスクリプト検証CI
+├── .github/
+│   ├── dependabot.yml        # actionの更新確認（月1回）
+│   └── workflows/            # Skillごとのスクリプト検証CI
 ├── tests/                    # スクリプトを持つSkillのテスト（配布対象外）
 │   └── benchmark-ollama-llm/
 └── skills/
