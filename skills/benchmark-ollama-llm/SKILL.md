@@ -6,23 +6,30 @@ description: Ollamaで動かすローカルLLMの速度（入力・出力のtok/
 # OllamaでLLMのベンチマークを取る
 
 ローカルのOllama API（`/api/generate` のストリーミング）に同じプロンプトを繰り返し送り、ウォームアップ1回の後に指定回数を計測する。
-スクリプトは `scripts/` にあり、計測項目・CSV列・既定値はすべての実行方法で同じ。
+スクリプトは `scripts/` にあり、計測項目・CSV列はすべての実行方法で同じ。
+既定値は3つのスクリプトで共通の [`scripts/defaults.json`](scripts/defaults.json) に置いてある。
 
 ## 1. パラメーターを決める
 
-依頼から次の値を読み取り、指定がないものは既定値を使う。実行前に使う値を一言で伝える。
+依頼から次の値を読み取り、指定がないものは `defaults.json` の値を使う。実行前に使う値を一言で伝える。
+優先順位は「引数 ＞ 設定ファイル（`-Config` / `--config`）＞ `defaults.json`」。
 
-| 項目 | Windows (`benchmark.ps1`) | macOS (`benchmark.sh`) | ブラウザ (`benchmark-browser.js`) | 既定値 |
+| 項目 | JSONのキー | Windows (`benchmark.ps1`) | macOS (`benchmark.sh`) | 既定値 |
 | --- | --- | --- | --- | --- |
-| モデル | `-Model` | `--model` | `model` | `gemma4:12b` |
-| 計測回数 | `-Runs` | `--runs` | `runs` | `10` |
-| think | `-Think` | `--think` | `think` | `true` |
-| 最大出力トークン | `-NumPredict` | `--num-predict` | `numPredict` | `2048` |
-| temperature | `-Temperature` | `--temperature` | `temperature` | `0` |
-| プロンプト | `-Prompt` | `--prompt` / `--prompt-file` | `prompt` | Swiftのソートの説明（スクリプト内） |
-| CSV出力先 | `-OutputCsv` | `--output-csv` | `csvFileName()` の名前で保存 | `ollama-benchmark-YYYYMMDD-HHMMSS.csv` |
-| prompt cacheを避ける | `-BustPromptCache` | `--bust-prompt-cache` | `bustPromptCache: true` | なし |
-| Ollamaの接続先 | `-OllamaHost` | `--host` | `host`（省略時は開いているページ） | `http://localhost:11434` |
+| モデル | `model` | `-Model` | `--model` | `gemma4:12b` |
+| 計測回数 | `runs` | `-Runs` | `--runs` | `10` |
+| think | `think` | `-Think` | `--think` | `true` |
+| 最大出力トークン | `numPredict` | `-NumPredict` | `--num-predict` | `2048` |
+| temperature | `temperature` | `-Temperature` | `--temperature` | `0` |
+| プロンプト | `prompt` | `-Prompt` | `--prompt` / `--prompt-file` | Swiftのソートの説明 |
+| prompt cacheを避ける | `bustPromptCache` | `-BustPromptCache` | `--bust-prompt-cache` | `false` |
+| Ollamaの接続先 | `host` | `-OllamaHost` | `--host` | `http://localhost:11434` |
+| 設定ファイル | — | `-Config` | `--config` | なし |
+| CSV出力先 | — | `-OutputCsv` | `--output-csv` | `ollama-benchmark-YYYYMMDD-HHMMSS.csv` |
+
+- ブラウザ (`benchmark-browser.js`) はJSONのキーと同じ名前の値を `start` に渡す。
+- 同じ条件を繰り返し測るときや、複数の値を変えるときは、変えたいキーだけを書いたJSONファイルを作って設定ファイルとして渡す。知らないキーがあるとエラーになる。
+- 既定値そのものを変えたい依頼のときだけ `defaults.json` を編集する。
 
 - `think` は `true` / `false` / `low` / `medium` / `high` / `max` / `default`。`default` はリクエストに `think` を含めない。thinking非対応のモデルでエラーになった場合は `false` か `default` を提案する。
 - 入力速度を比べたいときは prompt cache の影響を避けるため `BustPromptCache` を付ける。
@@ -77,7 +84,7 @@ bash <skill-dir>/scripts/benchmark.sh --model qwen3:30b --runs 10 --think false
 
 1. Ollamaと同じPCのブラウザで `http://localhost:11434` を開く。同じoriginから呼ぶのでCORSの設定は要らない。
 2. `scripts/benchmark-browser.js` の中身を読み、そのページでJavaScriptとして実行する。`ollamaBenchmark` が定義される。
-3. `ollamaBenchmark.start({ model: "qwen3:30b", runs: 10, think: "false" })` を実行する。計測はバックグラウンドで進み、すぐ戻る。
+3. `scripts/defaults.json`（設定ファイルがあればその中身も）を読み、依頼の値と重ねて `start` に渡す。例: `ollamaBenchmark.start({ ...defaults, model: "qwen3:30b", think: "false" })`。ページからはファイルを読めないので、JSONの中身をそのまま書き込む。必要な値が欠けているとエラーになる。計測はバックグラウンドで進み、すぐ戻る。
 4. `ollamaBenchmark.status()` を間を空けて呼び、`status` が `done` か `error` になるまで待つ。`done` / `runs` と `last` で進み具合が分かる。1回の時間は `warmup` と `last` の `WallSec` から見積もる。
 5. `error` の場合は `code` を上の終了コードと同じ意味で扱い、`error` のメッセージを確認する。
 6. `ollamaBenchmark.summary()` でサマリー、`ollamaBenchmark.csv()` でCSV文字列、`ollamaBenchmark.csvFileName()` で保存名を取得する。ブラウザからはファイルを書けないので、CSVは自分の作業環境にその名前で保存してユーザーに渡す。
