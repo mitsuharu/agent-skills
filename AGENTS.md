@@ -27,6 +27,12 @@
 - `SKILL.md` を簡潔に保ち、補助資料・スクリプト・素材は実際に必要な場合だけ追加する。
 - Skillを追加・変更したらREADMEの一覧と使い方を同期する。不要な設定や生成物を追加しない。
 
+## GitHub Actions
+
+- 外部のactionはタグではなくフルのコミットSHAで固定し、行末にバージョンをコメントで書く。例: `uses: actions/checkout@<40桁のSHA> # v7.0.1`
+- SHAはタグが指すコミットを公式リポジトリで確認して使う（`git ls-remote --tags https://github.com/<owner>/<repo>` など）。更新時もSHAとコメントを一緒に変える。
+- Node.jsのバージョンはルートの `.node-version` で指定する（現在は24）。非推奨のNode.jsで動くactionは、そのランタイムに対応したバージョンへ上げる。
+
 ## Validation
 
 - PR作成前に `skills/add-skill/references/validation.md` に従い、frontmatter・リンク・Skillの動作手順を確認する。
