@@ -58,18 +58,18 @@ check "request options" test "$(tail -1 "$LOG" | jq -c '[.model, .think, .option
 
 # --- think / bust cache -------------------------------------------------
 : >"$LOG"
-bash "$SCRIPT" --host "$HOST" --model mock-model --think high --bust-prompt-cache \
+bash "$SCRIPT" --host "$HOST" --model mock-model --runs 1 --think high --bust-prompt-cache \
     --prompt "hello" --output-csv "$TMP/b.csv" >/dev/null
 check "think level is sent as string" test "$(tail -1 "$LOG" | jq -r '.think')" = high
 check "bust cache prefixes a unique id" test "$(jq -r '.prompt | split("\n")[0]' "$LOG" | sort -u | grep -c '^\[benchmark-id: ')" -eq 2
 check "bust cache keeps the prompt" test "$(tail -1 "$LOG" | jq -r '.prompt | split("\n") | last')" = hello
 
 : >"$LOG"
-bash "$SCRIPT" --host "$HOST" --model mock-model --think default --output-csv "$TMP/c.csv" >/dev/null
+bash "$SCRIPT" --host "$HOST" --model mock-model --runs 1 --think default --output-csv "$TMP/c.csv" >/dev/null
 check "think=default omits think" test "$(tail -1 "$LOG" | jq 'has("think")')" = false
 check "no thinking -> ThinkingSec 0" test "$(csv_value "$TMP/c.csv" 1 ThinkingSec)" = 0
 
-bash "$SCRIPT" --host "$HOST" --model mock-model --think false --output-csv "$TMP/d.csv" >/dev/null
+bash "$SCRIPT" --host "$HOST" --model mock-model --runs 1 --think false --output-csv "$TMP/d.csv" >/dev/null
 check "think=false is sent as boolean" test "$(tail -1 "$LOG" | jq -c '.think')" = false
 
 # --- errors -------------------------------------------------------------

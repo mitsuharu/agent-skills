@@ -14,7 +14,7 @@ export LC_NUMERIC=C
 MODEL="gemma4:12b"
 PROMPT="Swiftで100万件の要素を効率よくソートする方法を説明してください。
 アルゴリズムの計算量、メモリ使用量、Swiftでの実装例も含めてください。"
-RUNS=1
+RUNS=10
 # true / false / low / medium / high / max / default
 THINK="true"
 NUM_PREDICT=2048
@@ -32,7 +32,7 @@ Usage: benchmark.sh [options]
   -m, --model NAME          Model name (default: gemma4:12b)
   -p, --prompt TEXT         Prompt text
       --prompt-file PATH    Read the prompt from a file
-  -n, --runs N              Number of measured runs (default: 1)
+  -n, --runs N              Number of measured runs (default: 10)
   -t, --think VALUE         true|false|low|medium|high|max|default (default: true)
       --num-predict N       Max output tokens (default: 2048)
       --temperature X       Sampling temperature (default: 0)

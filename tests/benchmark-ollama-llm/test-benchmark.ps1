@@ -78,7 +78,7 @@ try {
 
     # --- think / bust cache ---------------------------------------------
     Clear-Content -Path $log
-    $r = Invoke-Benchmark @("-Model", "mock-model", "-Think", "high", "-BustPromptCache",
+    $r = Invoke-Benchmark @("-Model", "mock-model", "-Runs", "1", "-Think", "high", "-BustPromptCache",
         "-Prompt", "hello", "-OutputCsv", (Join-Path $tmp "b.csv"))
     $prompts = @(Get-Content -Path $log -Encoding UTF8 | ForEach-Object { ($_ | ConvertFrom-Json).prompt })
     Test-Case "think level is sent as string" ((Get-LastRequest).think -eq "high")
@@ -86,7 +86,7 @@ try {
         $prompts[0] -match "^\[benchmark-id: " -and $prompts[0] -ne $prompts[1])
 
     Clear-Content -Path $log
-    $r = Invoke-Benchmark @("-Model", "mock-model", "-Think", "default", "-OutputCsv", (Join-Path $tmp "c.csv"))
+    $r = Invoke-Benchmark @("-Model", "mock-model", "-Runs", "1", "-Think", "default", "-OutputCsv", (Join-Path $tmp "c.csv"))
     Test-Case "think=default omits think" ($null -eq (Get-LastRequest).PSObject.Properties["think"])
 
     # --- errors ---------------------------------------------------------

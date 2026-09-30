@@ -1,5 +1,4 @@
 ﻿param(
-    # [string]$Model = "qwen3:30b",
     [string]$Model = "gemma4:12b",
 
     [string]$Prompt = @"
@@ -7,8 +6,7 @@ Swiftで100万件の要素を効率よくソートする方法を説明してく
 アルゴリズムの計算量、メモリ使用量、Swiftでの実装例も含めてください。
 "@,
 
-    # [int]$Runs = 10,
-    [int]$Runs = 1,
+    [int]$Runs = 10,
 
     # true / false / low / medium / high / max / default
     [string]$Think = "true",

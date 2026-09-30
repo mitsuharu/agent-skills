@@ -15,7 +15,7 @@ description: Ollamaで動かすローカルLLMの速度（入力・出力のtok/
 | 項目 | Windows (`benchmark.ps1`) | macOS (`benchmark.sh`) | 既定値 |
 | --- | --- | --- | --- |
 | モデル | `-Model` | `--model` | `gemma4:12b` |
-| 計測回数 | `-Runs` | `--runs` | `1` |
+| 計測回数 | `-Runs` | `--runs` | `10` |
 | think | `-Think` | `--think` | `true` |
 | 最大出力トークン | `-NumPredict` | `--num-predict` | `2048` |
 | temperature | `-Temperature` | `--temperature` | `0` |
