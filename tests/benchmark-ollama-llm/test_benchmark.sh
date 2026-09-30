@@ -72,6 +72,11 @@ check "no thinking -> ThinkingSec 0" test "$(csv_value "$TMP/c.csv" 1 ThinkingSe
 bash "$SCRIPT" --host "$HOST" --model mock-model --runs 1 --think false --output-csv "$TMP/d.csv" >/dev/null
 check "think=false is sent as boolean" test "$(tail -1 "$LOG" | jq -c '.think')" = false
 
+# --- default csv name ---------------------------------------------------
+mkdir "$TMP/default"
+(cd "$TMP/default" && bash "$SCRIPT" --host "$HOST" --model mock-model --runs 1 >/dev/null)
+check "default csv name has a timestamp" test "$(find "$TMP/default" -name 'ollama-benchmark-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].csv' | wc -l | tr -d ' ')" -eq 1
+
 # --- errors -------------------------------------------------------------
 set +e
 bash "$SCRIPT" --host "$HOST" --model missing-model --output-csv "$TMP/e.csv" >/dev/null 2>&1

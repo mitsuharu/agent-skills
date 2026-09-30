@@ -15,7 +15,8 @@ Swiftで100万件の要素を効率よくソートする方法を説明してく
 
     [double]$Temperature = 0,
 
-    [string]$OutputCsv = "ollama-benchmark.csv",
+    # 省略時は開始時刻入りの名前にして上書きを防ぐ
+    [string]$OutputCsv = "ollama-benchmark-$(Get-Date -Format 'yyyyMMdd-HHmmss').csv",
 
     # 指定すると毎回プロンプト先頭を変更して
     # prompt cache が効きにくい状態で入力性能を測る

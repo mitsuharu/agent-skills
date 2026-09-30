@@ -19,7 +19,8 @@ RUNS=10
 THINK="true"
 NUM_PREDICT=2048
 TEMPERATURE=0
-OUTPUT_CSV="ollama-benchmark.csv"
+# 省略時は開始時刻入りの名前にして上書きを防ぐ
+OUTPUT_CSV="ollama-benchmark-$(date +%Y%m%d-%H%M%S).csv"
 # 指定すると毎回プロンプト先頭を変更して
 # prompt cache が効きにくい状態で入力性能を測る
 BUST_PROMPT_CACHE=false
@@ -36,7 +37,8 @@ Usage: benchmark.sh [options]
   -t, --think VALUE         true|false|low|medium|high|max|default (default: true)
       --num-predict N       Max output tokens (default: 2048)
       --temperature X       Sampling temperature (default: 0)
-  -o, --output-csv PATH     CSV output path (default: ollama-benchmark.csv)
+  -o, --output-csv PATH     CSV output path
+                            (default: ollama-benchmark-YYYYMMDD-HHMMSS.csv)
       --bust-prompt-cache   Prefix a random id to the prompt on every run
       --host URL            Ollama URL (default: http://localhost:11434)
   -h, --help                Show this help

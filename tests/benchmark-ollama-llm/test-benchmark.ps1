@@ -89,6 +89,20 @@ try {
     $r = Invoke-Benchmark @("-Model", "mock-model", "-Runs", "1", "-Think", "default", "-OutputCsv", (Join-Path $tmp "c.csv"))
     Test-Case "think=default omits think" ($null -eq (Get-LastRequest).PSObject.Properties["think"])
 
+    # --- default csv name -----------------------------------------------
+    $defaultDir = Join-Path $tmp "default"
+    New-Item -ItemType Directory -Path $defaultDir | Out-Null
+    Push-Location $defaultDir
+    try {
+        $r = Invoke-Benchmark @("-Model", "mock-model", "-Runs", "1")
+    }
+    finally {
+        Pop-Location
+    }
+    $names = @(Get-ChildItem -Path $defaultDir -Name)
+    Test-Case "default csv name has a timestamp" (
+        $names.Count -eq 1 -and $names[0] -match "^ollama-benchmark-\d{8}-\d{6}\.csv$")
+
     # --- errors ---------------------------------------------------------
     $r = Invoke-Benchmark @("-Model", "missing-model", "-OutputCsv", (Join-Path $tmp "e.csv"))
     Test-Case "missing model exits 3" ($r.ExitCode -eq 3)
