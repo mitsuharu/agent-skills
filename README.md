@@ -10,6 +10,7 @@ agent-skills/
 ├── README.md
 ├── .gitattributes
 ├── .gitignore
+├── .node-version            # Node.jsのバージョン（24）
 ├── AGENTS.md
 ├── .github/workflows/        # Skillごとのスクリプト検証CI
 ├── tests/                    # スクリプトを持つSkillのテスト（配布対象外）
