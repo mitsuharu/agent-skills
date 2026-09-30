@@ -8,13 +8,22 @@ Skillのソースは `skills/` にまとめ、変更は作業用ブランチか�
 ```text
 agent-skills/
 ├── README.md
+├── .gitattributes
 ├── .gitignore
 ├── AGENTS.md
+├── .github/workflows/        # Skillごとのスクリプト検証CI
+├── tests/                    # スクリプトを持つSkillのテスト（配布対象外）
+│   └── benchmark-ollama-llm/
 └── skills/
     ├── add-skill/
     │   ├── SKILL.md
     │   └── references/
     │       └── validation.md
+    ├── benchmark-ollama-llm/
+    │   ├── SKILL.md
+    │   └── scripts/
+    │       ├── benchmark.ps1
+    │       └── benchmark.sh
     ├── play-torneko-chotto-dungeon/
     │   └── SKILL.md
     └── setup-comfyui-qwen-image-gguf/
@@ -38,6 +47,7 @@ Agent Skillは、特定の作業で使う指示と必要な補助ファイルを
 | --- | --- |
 | [add-skill](skills/add-skill/SKILL.md) | このリポジトリへのSkill追加、重複確認、README更新、構造検証 |
 | [setup-comfyui-qwen-image-gguf](skills/setup-comfyui-qwen-image-gguf/SKILL.md) | Windows + NVIDIA GPUにComfyUIを構築し、Qwen-Image-2.1-Uncensored（GGUF）をVRAMに合った量子化で使えるようにする |
+| [benchmark-ollama-llm](skills/benchmark-ollama-llm/SKILL.md) | Ollamaで動かすローカルLLMの入力・出力速度や思考時間を計測する。Windows（PowerShell）とmacOS（bash）でスクリプトを切り替え、モデル・回数・thinkなどを指定できる |
 | [play-torneko-chotto-dungeon](skills/play-torneko-chotto-dungeon/SKILL.md) | Steam版トルネコの大冒険リマスターをコンピュータ操作でプレイし、ちょっと不思議のダンジョンの宝石箱を持ち帰る。プレイごとに攻略情報を更新する |
 
 ## インストール
@@ -131,6 +141,16 @@ npx skills add . --list
 ```
 
 これはSkillの検出確認です。YAMLの妥当性や名前の制約、参照先、手順の内容はチェックリストで別途確認してください。
+
+## スクリプトのテスト
+
+スクリプトを含むSkillのテストは `tests/<skill-name>/` に置き、`.github/workflows/<skill-name>.yml` でそのSkillを変更したPRだけ実行します。
+`tests/` はSkillと一緒にインストールされません。
+
+```sh
+bash tests/benchmark-ollama-llm/test_benchmark.sh              # macOS / Linux
+pwsh tests/benchmark-ollama-llm/test-benchmark.ps1             # Windows
+```
 
 ## 開発方針
 
