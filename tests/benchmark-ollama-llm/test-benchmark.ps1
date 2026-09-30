@@ -108,3 +108,4 @@ if ($script:failures -gt 0) {
     exit 1
 }
 Write-Output "all tests passed"
+exit 0
