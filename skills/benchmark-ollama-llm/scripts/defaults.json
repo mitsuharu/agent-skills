@@ -1,0 +1,10 @@
+{
+  "model": "gemma4:12b",
+  "prompt": "Swiftで100万件の要素を効率よくソートする方法を説明してください。\nアルゴリズムの計算量、メモリ使用量、Swiftでの実装例も含めてください。",
+  "runs": 10,
+  "think": "true",
+  "numPredict": 2048,
+  "temperature": 0,
+  "bustPromptCache": false,
+  "host": "http://localhost:11434"
+}

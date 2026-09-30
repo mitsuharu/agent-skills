@@ -5,6 +5,7 @@ Usage: python3 mock_ollama.py PORT REQUEST_LOG
 - GET  /api/tags      -> installed models (MODELS below)
 - POST /api/generate  -> streams NDJSON (thinking, response, done)
                          and appends the request body to REQUEST_LOG
+- POST /api/pull      -> streams pull progress NDJSON (status: success)
 - model "error-model" -> HTTP 500
 """
 
@@ -48,6 +49,16 @@ class Handler(BaseHTTPRequestHandler):
             self._json(404, {"error": "not found"})
 
     def do_POST(self):
+        if self.path == "/api/pull":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson")
+            self.end_headers()
+            for chunk in [{"status": "pulling manifest"},
+                          {"status": "downloading", "total": 100, "completed": 100},
+                          {"status": "success"}]:
+                self.wfile.write((json.dumps(chunk) + "\n").encode())
+                self.wfile.flush()
+            return
         if self.path != "/api/generate":
             self._json(404, {"error": "not found"})
             return

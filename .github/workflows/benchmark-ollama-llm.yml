@@ -24,6 +24,17 @@ jobs:
       - name: shellcheck
         run: shellcheck skills/benchmark-ollama-llm/scripts/*.sh tests/benchmark-ollama-llm/*.sh
 
+  browser:
+    # ブラウザ用スクリプトを Node.js の fetch でモックAPIに対して実行する
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+      - name: Test benchmark-browser.js
+        run: node --test tests/benchmark-ollama-llm/test-benchmark-browser.mjs
+
   macos:
     # macOS標準の bash 3.2 / curl / perl / jq でモックAPIに対して実行する
     runs-on: macos-latest

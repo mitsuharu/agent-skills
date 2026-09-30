@@ -25,8 +25,10 @@ agent-skills/
     ├── benchmark-ollama-llm/
     │   ├── SKILL.md
     │   └── scripts/
+    │       ├── benchmark-browser.js
     │       ├── benchmark.ps1
-    │       └── benchmark.sh
+    │       ├── benchmark.sh
+    │       └── defaults.json     # 3つのスクリプトで共通の既定値
     ├── play-torneko-chotto-dungeon/
     │   └── SKILL.md
     └── setup-comfyui-qwen-image-gguf/
@@ -50,7 +52,7 @@ Agent Skillは、特定の作業で使う指示と必要な補助ファイルを
 | --- | --- |
 | [add-skill](skills/add-skill/SKILL.md) | このリポジトリへのSkill追加、重複確認、README更新、構造検証 |
 | [setup-comfyui-qwen-image-gguf](skills/setup-comfyui-qwen-image-gguf/SKILL.md) | Windows + NVIDIA GPUにComfyUIを構築し、Qwen-Image-2.1-Uncensored（GGUF）をVRAMに合った量子化で使えるようにする |
-| [benchmark-ollama-llm](skills/benchmark-ollama-llm/SKILL.md) | Ollamaで動かすローカルLLMの入力・出力速度や思考時間を計測する。Windows（PowerShell）とmacOS（bash）でスクリプトを切り替え、モデル・回数・thinkなどを指定できる |
+| [benchmark-ollama-llm](skills/benchmark-ollama-llm/SKILL.md) | Ollamaで動かすローカルLLMの入力・出力速度や思考時間を計測する。Windows（PowerShell）とmacOS（bash）でスクリプトを切り替え、シェルが使えない場合はブラウザからも計測できる。既定値は共通の `defaults.json` にあり、モデル・回数・thinkなどは引数か設定JSONで指定でき、CSVは実行ごとに時刻入りの名前で保存する |
 | [play-torneko-chotto-dungeon](skills/play-torneko-chotto-dungeon/SKILL.md) | Steam版トルネコの大冒険リマスターをコンピュータ操作でプレイし、ちょっと不思議のダンジョンの宝石箱を持ち帰る。プレイごとに攻略情報を更新する |
 
 ## インストール
@@ -153,6 +155,7 @@ npx skills add . --list
 ```sh
 bash tests/benchmark-ollama-llm/test_benchmark.sh              # macOS / Linux
 pwsh tests/benchmark-ollama-llm/test-benchmark.ps1             # Windows
+node --test tests/benchmark-ollama-llm/test-benchmark-browser.mjs  # ブラウザ用（Node.js）
 ```
 
 ## 開発方針

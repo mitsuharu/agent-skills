@@ -1,31 +1,97 @@
 ﻿param(
-    [string]$Model = "gemma4:12b",
+    # 既定値は3つのスクリプトで共通の defaults.json（このスクリプトと同じ場所）から読む。
+    # 優先順位: 引数 > -Config のJSON > defaults.json
 
-    [string]$Prompt = @"
-Swiftで100万件の要素を効率よくソートする方法を説明してください。
-アルゴリズムの計算量、メモリ使用量、Swiftでの実装例も含めてください。
-"@,
+    # defaults.json を上書きするJSONファイル
+    [string]$Config,
 
-    [int]$Runs = 10,
+    [string]$Model,
+
+    [string]$Prompt,
+
+    [int]$Runs,
 
     # true / false / low / medium / high / max / default
-    [string]$Think = "true",
+    [string]$Think,
 
-    [int]$NumPredict = 2048,
+    [int]$NumPredict,
 
-    [double]$Temperature = 0,
+    [double]$Temperature,
 
-    [string]$OutputCsv = "ollama-benchmark.csv",
+    # 省略時は開始時刻入りの名前にして上書きを防ぐ
+    [string]$OutputCsv = "ollama-benchmark-$(Get-Date -Format 'yyyyMMdd-HHmmss').csv",
 
     # 指定すると毎回プロンプト先頭を変更して
     # prompt cache が効きにくい状態で入力性能を測る
     [switch]$BustPromptCache,
 
     # Ollama APIの接続先
-    [string]$OllamaHost = "http://localhost:11434"
+    [string]$OllamaHost
 )
 
 $ErrorActionPreference = "Stop"
+
+# ------------------------------------------------------------
+# Settings: defaults.json < -Config < 引数
+# ------------------------------------------------------------
+
+$settingKeys = @("model", "prompt", "runs", "think", "numPredict", "temperature", "bustPromptCache", "host")
+
+function Read-SettingsFile {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        Write-Host "Error: settings file not found: $Path"
+        exit 1
+    }
+
+    try {
+        $json = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    catch {
+        Write-Host "Error: invalid JSON: $Path"
+        exit 1
+    }
+
+    $unknown = @($json.PSObject.Properties.Name | Where-Object { $settingKeys -notcontains $_ })
+    if ($unknown.Count -gt 0) {
+        Write-Host "Error: unknown keys in ${Path}: $($unknown -join ', ')"
+        exit 1
+    }
+
+    return $json
+}
+
+$settings = @{}
+$settingFiles = @(Join-Path $PSScriptRoot "defaults.json")
+if ($Config) {
+    $settingFiles += $Config
+}
+foreach ($file in $settingFiles) {
+    foreach ($prop in (Read-SettingsFile $file).PSObject.Properties) {
+        $settings[$prop.Name] = $prop.Value
+    }
+}
+
+if (-not $PSBoundParameters.ContainsKey("Model")) { $Model = $settings["model"] }
+if (-not $PSBoundParameters.ContainsKey("Prompt")) { $Prompt = $settings["prompt"] }
+if (-not $PSBoundParameters.ContainsKey("Runs")) { $Runs = $settings["runs"] }
+if (-not $PSBoundParameters.ContainsKey("Think")) { $Think = "$($settings["think"])" }
+if (-not $PSBoundParameters.ContainsKey("NumPredict")) { $NumPredict = $settings["numPredict"] }
+if (-not $PSBoundParameters.ContainsKey("Temperature")) { $Temperature = $settings["temperature"] }
+if (-not $PSBoundParameters.ContainsKey("BustPromptCache")) { $BustPromptCache = [bool]$settings["bustPromptCache"] }
+if (-not $PSBoundParameters.ContainsKey("OllamaHost")) { $OllamaHost = $settings["host"] }
+
+if (-not $Model) {
+    Write-Host "Error: model is not set"
+    exit 1
+}
+if (-not $Think) { $Think = "default" }
+if (-not $OllamaHost) { $OllamaHost = "http://localhost:11434" }
+if ($Runs -lt 1) {
+    Write-Host "Error: -Runs must be a positive integer"
+    exit 1
+}
 
 Add-Type -AssemblyName System.Net.Http
 

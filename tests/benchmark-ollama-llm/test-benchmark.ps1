@@ -89,6 +89,48 @@ try {
     $r = Invoke-Benchmark @("-Model", "mock-model", "-Runs", "1", "-Think", "default", "-OutputCsv", (Join-Path $tmp "c.csv"))
     Test-Case "think=default omits think" ($null -eq (Get-LastRequest).PSObject.Properties["think"])
 
+    # --- defaults.json / -Config ----------------------------------------
+    $defaults = Get-Content -Raw -Encoding UTF8 (Join-Path $PSScriptRoot "../../skills/benchmark-ollama-llm/scripts/defaults.json") | ConvertFrom-Json
+    Clear-Content -Path $log
+    $r = Invoke-Benchmark @("-Runs", "1", "-OutputCsv", (Join-Path $tmp "f.csv"))
+    $req = Get-LastRequest
+    Test-Case "defaults.json values are sent" (
+        $req.model -eq $defaults.model -and $req.options.num_predict -eq $defaults.numPredict -and
+        $req.options.temperature -eq $defaults.temperature -and $req.prompt -eq $defaults.prompt -and
+        "$($req.think)" -eq "$($defaults.think)")
+
+    $configPath = Join-Path $tmp "config.json"
+    Set-Content -Path $configPath -Encoding UTF8 -Value '{"model": "mock-model", "numPredict": 64, "think": "false", "runs": 1}'
+    Clear-Content -Path $log
+    $r = Invoke-Benchmark @("-Config", $configPath, "-OutputCsv", (Join-Path $tmp "g.csv"))
+    $req = Get-LastRequest
+    Test-Case "-Config overrides defaults.json" (
+        $req.model -eq "mock-model" -and $req.think -eq $false -and $req.options.num_predict -eq 64)
+    Test-Case "-Config runs is used" (@(Get-Content -Path $log).Count -eq 2)
+    $r = Invoke-Benchmark @("-Config", $configPath, "-NumPredict", "32", "-OutputCsv", (Join-Path $tmp "h.csv"))
+    Test-Case "parameters override -Config" ((Get-LastRequest).options.num_predict -eq 32)
+
+    $badPath = Join-Path $tmp "bad.json"
+    Set-Content -Path $badPath -Encoding UTF8 -Value '{"modle": "typo"}'
+    $r = Invoke-Benchmark @("-Config", $badPath)
+    Test-Case "unknown config key exits 1" ($r.ExitCode -eq 1)
+    $r = Invoke-Benchmark @("-Config", (Join-Path $tmp "missing.json"))
+    Test-Case "missing config file exits 1" ($r.ExitCode -eq 1)
+
+    # --- default csv name -----------------------------------------------
+    $defaultDir = Join-Path $tmp "default"
+    New-Item -ItemType Directory -Path $defaultDir | Out-Null
+    Push-Location $defaultDir
+    try {
+        $r = Invoke-Benchmark @("-Model", "mock-model", "-Runs", "1")
+    }
+    finally {
+        Pop-Location
+    }
+    $names = @(Get-ChildItem -Path $defaultDir -Name)
+    Test-Case "default csv name has a timestamp" (
+        $names.Count -eq 1 -and $names[0] -match "^ollama-benchmark-\d{8}-\d{6}\.csv$")
+
     # --- errors ---------------------------------------------------------
     $r = Invoke-Benchmark @("-Model", "missing-model", "-OutputCsv", (Join-Path $tmp "e.csv"))
     Test-Case "missing model exits 3" ($r.ExitCode -eq 3)
