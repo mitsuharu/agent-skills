@@ -1,21 +1,71 @@
 ---
 name: local-llm-benchmark
-description: ローカルLLMの日本語理解、Swift/iOS、React Native、コードレビュー、設計、推論、指示遵守の品質と入力・生成速度を固定問題で比較する。Ollama、llama.cpp、LM StudioのAPIを使った実務能力の評価に使用する。速度だけのOllama計測はbenchmark-ollama-llmを使う。
+description: 評価対象のLLM自身が固定問題に解答し、日本語理解・モバイル開発・レビュー・設計・推論・指示遵守の能力を比較する。APIや外部モデルを呼ばず、自身の知識で解答するベンチマーク。
 ---
 
-# ローカルLLMの実務ベンチマーク
+# LLM実務能力ベンチマーク v2
 
-1. 対象モデル、API方式、接続先、量子化、GPU、コンテキスト長、ランタイム版、thinking設定を確認する。モデルの設定はサーバー側で固定し記録する。既定は3回・temperature 0・最大生成2048。対象ごとに同じ条件を使う。
-2. Python 3.10以上（標準ライブラリのみ）で実行する。接続先は利用者が許可したローカルまたはLANのAPIに限定する。モデルのダウンロードや設定変更は勝手に行わない。
-3. [実行・採点方法](references/protocol.md) に従う。問題は [cases.json](assets/cases.json) に固定し、採点基準は評価対象へ送らない。
-4. 出力JSONを保存する。品質は別の評価者が採点し、速度と独立して報告する。生成コードを自動実行しない。コンパイル・テストが未実施なら明記する。
+あなた自身が受験者です。別のLLMを起動したり、ベンチマーク用プログラムを作ったりせず、以下の問題を解答してください。
 
-例（Skillディレクトリから）:
+## 実行ルール
 
-```sh
-python scripts/benchmark.py --backend ollama --url http://localhost:11434 --model gemma4:12b --out gemma.json
-python scripts/benchmark.py --backend openai --url http://localhost:1234 --model MODEL_ID --out lmstudio.json
-python scripts/benchmark.py --backend openai --url http://localhost:8080 --model MODEL_ID --out llama.json
-```
+- 指定された問題IDを1問だけ解答する。指定がなければ ja-01 を解答する。全問を比較する場合、利用者は毎回新規会話でIDを指定する。
+- 問題文だけに基づき、自身の知識と推論で解答する。検索、外部ツール、他のLLM、既存コード、採点資料は利用しない。
+- 問題に指定された出力形式を守る。形式指定がない場合は日本語のMarkdownで、必要なコードを省略せず提示する。
+- 自己採点、モデル名、速度の推測、実行していないテストの成功報告は不要。解答だけを返す。
+- スキルを利用できないチャットでは、利用者が同じ問題文と実行ルールを直接入力する。
+- 速度は利用者が実行環境の計測値から別途取得する。品質評価は別の評価者が行う。
 
-Windowsでpythonが見つからなければpy -3を使う。速度のみの依頼は対象外。結果の再現条件、未採点、エラー、打ち切りを隠さない。
+## 固定問題
+
+### ja-01 — 日本語理解
+
+次の仕様を解釈し、A〜Dの表示可否をJSONだけで回答してください。会員のみ表示。ただし退会済みは不可。管理者は非会員でも表示可。ただし退会済みの例外はない。A:会員、B:非会員の管理者、C:退会済み管理者、D:非会員。
+
+### ja-02 — 日本語理解
+
+仕様『保存しない限り画面を閉じても変更は反映されない。ただし下書きは復元できる』について、確定事項と確認が必要な事項を分けて日本語で説明してください。
+
+### swift-01 — Swift / iOS
+
+Swift 6で検索文字列が変わるたびに非同期検索する@MainActorのViewModelを実装してください。古い結果が新しい結果を上書きしないこと、キャンセル非協力的なAPIも考慮し、エラーと空文字を処理してください。依存は注入可能に。
+
+### swift-02 — Swift / iOS
+
+UIKitのWKWebViewからJavaScriptメッセージを受け取る画面を実装してください。画面破棄時の循環参照防止、不正なbodyの検証、UI更新のMainActor制約を説明してください。
+
+### rn-01 — React Native
+
+Expo RouterとTypeScriptで /input から /result に検索語を渡してください。直リンク、未指定、配列になったパラメータを扱い、型安全な実装を示してください。
+
+### rn-02 — React Native
+
+React Nativeで検索APIを呼ぶフックをTypeScriptで書いてください。アンマウントと連続検索で古い応答を無視し、エラーとloadingを扱い、外部ライブラリを使わないでください。
+
+### review-01 — コードレビュー
+
+次のSwiftコードをレビューし、重大度・根拠・修正案を示してください。
+class VM { var count = 0; var callback: (() -> Void)?; func start() { callback = { self.count += 1 }; DispatchQueue.global().async { self.count += 1 } } }
+存在しない問題は指摘しないこと。
+
+### review-02 — コードレビュー
+
+次のReactコードをレビューしてください。
+useEffect(() => { fetch('/api?q=' + query).then(r => r.json()).then(setItems); }, []);
+queryはpropsの文字列です。重大度・根拠・修正案を提示してください。
+
+### design-01 — アーキテクチャ設計
+
+オフライン対応のiOS在庫管理アプリを設計してください。SwiftUI、Core Data、REST APIを使い、同期競合、再試行、UIとロジックの分離、テスト方針を日本語で説明してください。
+
+### design-02 — アーキテクチャ設計
+
+Bluetoothサーマルプリンター対応アプリを設計してください。UI、印刷ジョブ、ESC/POS変換、BLE通信の責務分離と、切断・部分送信・再送による二重印刷への対策を示してください。
+
+### reason-01 — 推論・問題解決
+
+WKWebViewがiOSの一部端末でdidFinish直後にJavaScript関数undefinedとなる。再読み込みで直る場合がある。原因候補、観測方法、修正方針を優先順に説明してください。固定sleepを恒久対策にしないこと。
+
+### follow-01 — 指示遵守
+
+次の条件でJSONだけを出力してください。キーは status と retries のみ。statusは文字列 ok、retriesは整数3。Markdown禁止。
